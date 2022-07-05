@@ -135,17 +135,19 @@ function applyMiddlewareToType<TSource, TContext, TArgs>(
   const fieldMap = type.getFields()
 
   if (isMiddlewareFunction(middleware)) {
-    const resolvers = Object.keys(fieldMap).reduce(
-      (resolvers, fieldName) => ({
-        ...resolvers,
-        [fieldName]: applyMiddlewareToField(
-          fieldMap[fieldName],
-          options,
-          middleware as IMiddlewareFunction<TSource, TContext, TArgs>,
-        ),
-      }),
-      {},
-    )
+    const resolvers = Object.keys(fieldMap)
+      .filter((fieldName) => fieldName !== '_entities')
+      .reduce(
+        (resolvers, fieldName) => ({
+          ...resolvers,
+          [fieldName]: applyMiddlewareToField(
+            fieldMap[fieldName],
+            options,
+            middleware as IMiddlewareFunction<TSource, TContext, TArgs>,
+          ),
+        }),
+        {},
+      )
 
     return resolvers
   } else {
@@ -198,7 +200,7 @@ function applyMiddlewareToSchema<TSource, TContext, TArgs>(
 export function generateResolverFromSchemaAndMiddleware<
   TSource,
   TContext,
-  TArgs
+  TArgs,
 >(
   schema: GraphQLSchema,
   options: IApplyOptions,

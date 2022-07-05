@@ -27,6 +27,7 @@
     "@graphql-tools/schema": "^8.5.0"
   },
   "devDependencies": {
+    "@apollo/subgraph": "^0.4.2",
     "@types/jest": "^26.0.24",
     "@types/lodash": "^4.14.182",
     "apollo-link": "^1.2.14",

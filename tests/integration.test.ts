@@ -1,7 +1,9 @@
 import { makeExecutableSchema } from '@graphql-tools/schema'
 // import { GraphQLServer as YogaServer } from 'graphql-yoga'
 import { ApolloServer } from 'apollo-server'
+import { buildSubgraphSchema } from '@apollo/subgraph'
 import Axios from 'axios'
+import { parse } from 'graphql'
 // import { AddressInfo } from 'ws'
 import { applyMiddleware } from '../src'
 
@@ -109,6 +111,62 @@ describe('integrations', () => {
       expect(body.data).toEqual({
         data: {
           test: 'pass-test',
+        },
+      })
+    } finally {
+      await server.stop()
+    }
+  })
+
+  test('ApolloFederation', async () => {
+    /* Schema. */
+    const typeDefs = parse(`
+      type User @key(fields: "id") {
+        id: ID!
+        name: String!
+      }
+    `)
+
+    const resolvers = {
+      User: {
+        __resolveReference: ({ id }) => ({ id, name: 'test' }),
+      },
+    }
+
+    const schema = buildSubgraphSchema({ typeDefs, resolvers })
+
+    const schemaWithMiddleware = applyMiddleware(schema, async (resolve) => {
+      const res = await resolve()
+      return `pass-${res}`
+    })
+
+    const server = new ApolloServer({
+      schema: schemaWithMiddleware,
+    })
+
+    await server.listen({ port: 8008 })
+
+    const uri = `http://localhost:8008/`
+
+    /* Tests */
+
+    const query = `
+      query {
+        _entities (representations: [{ __typename: "User", id: "1" }]) {
+          ... on User {
+            name
+          }
+        }
+      }
+    `
+
+    try {
+      const body = await Axios.post(uri, { query })
+      /* Tests. */
+
+      expect(body.data).toEqual({
+        data: {
+          _entities: [{ name: 'pass-test' }],
         },
       })
     } finally {
